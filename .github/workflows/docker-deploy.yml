@@ -1,0 +1,55 @@
+name: Build and Deploy Spring Boot with Docker
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull request to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # GitHub-hosted runner
+
+    steps:
+      # Checkout code from repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Oracle JDK 17
+      - name: Set up Oracle JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'oracle'  # Specify Oracle JDK distribution
+
+      # Build the Spring Boot app using Maven
+      - name: Build Spring Boot App with Maven
+        run: mvn -f demo/pom.xml clean install
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -f demo/Dockerfile -t springboot-app:latest .
+
+      # Run Docker container in detached mode
+      - name: Run Docker container locally
+        run: |
+          docker run -d -p 8080:8080 --name springboot-container springboot-app:latest
+
+      # List running Docker containers (using docker ps)
+      - name: List running Docker containers
+        run: |
+          docker ps
+
+      # Print logs from the running container
+      - name: Print Docker container logs
+        run: |
+          echo "Fetching logs from the Docker container..."
+          docker logs -f springboot-container
+
+      # Optionally, stop the container after the test
+      - name: Stop the Docker container
+        run: |
+          docker stop springboot-container
+          docker rm springboot-container
